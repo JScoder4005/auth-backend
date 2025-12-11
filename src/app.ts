@@ -11,18 +11,27 @@ const app = express();
 // Middlewares
 app.use(
   cors({
-    origin: ["http://localhost:3000", "https://www.getpostman.com"], // include your frontend origin
-    credentials: true, // important to send cookies
+    origin: process.env.FRONTEND_URL || "http://localhost:3000",
+    credentials: true,
   })
 );
-// allow frontend requests with cookies
-app.use(cookieParser());
+
+// Body parsing middleware - MUST come before routes
 app.use(express.json());
+app.use(cookieParser());
+
+// Logger middleware - logs all incoming requests
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+  console.log("Headers:", req.headers);
+  console.log("Body:", req.body);
+  next();
+});
 
 // Routes
 app.use("/api/auth", authRoutes);
 
-// You can add other protected routes later
-// e.g., app.use("/api/user", userRoutes);
+// app.use("/api/auth", authRoutes);
+// app.use("/api/user", userRoutes);
 
 export default app;

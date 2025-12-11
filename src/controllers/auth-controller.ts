@@ -9,6 +9,8 @@ import {
 
 // REGISTER
 export const register = async (req: Request, res: Response) => {
+  console.log("Register endpoint hit");
+  console.log("Register request body:", req.body);
   const { email, password } = req.body;
 
   try {
@@ -57,11 +59,11 @@ export const login = async (req: Request, res: Response) => {
 
     // Set cookies
     res.cookie("accessToken", accessToken, {
-      httpOnly: true,
+      httpOnly: false,
       maxAge: 30 * 60 * 1000,
     });
     res.cookie("refreshToken", refreshToken, {
-      httpOnly: true,
+      httpOnly: false,
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
@@ -89,7 +91,7 @@ export const refreshToken = async (req: Request, res: Response) => {
     const accessToken = createAccessToken(payload.userId);
 
     res.cookie("accessToken", accessToken, {
-      httpOnly: true,
+      httpOnly: false,
       maxAge: 30 * 60 * 1000,
     });
     return res.json({ accessToken });
