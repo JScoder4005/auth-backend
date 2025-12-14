@@ -8,11 +8,13 @@ datasource db {
 }
 
 model User {
-  id        Int            @id @default(autoincrement())
-  email     String         @unique
-  password  String
-  createdAt DateTime       @default(now())
-  tokens    RefreshToken[]
+  id         Int            @id @default(autoincrement())
+  email      String         @unique
+  password   String
+  createdAt  DateTime       @default(now())
+  tokens     RefreshToken[]
+  categories Category[]
+  expenses   Expense[]
 }
 
 model RefreshToken {
@@ -21,4 +23,37 @@ model RefreshToken {
   userId    Int
   user      User     @relation(fields: [userId], references: [id])
   createdAt DateTime @default(now())
+}
+
+model Category {
+  id        Int       @id @default(autoincrement())
+  name      String
+  icon      String?
+  color     String?
+  type      String    @default("expense") // "expense" or "income"
+  userId    Int
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expenses  Expense[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@unique([userId, name])
+  @@index([userId])
+}
+
+model Expense {
+  id          Int      @id @default(autoincrement())
+  amount      Float
+  description String
+  date        DateTime @default(now())
+  type        String   @default("expense") // "expense" or "income"
+  categoryId  Int
+  category    Category @relation(fields: [categoryId], references: [id])
+  userId      Int
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId, date])
+  @@index([categoryId])
 }
