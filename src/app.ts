@@ -8,13 +8,13 @@ dotenv.config();
 
 const app = express();
 
-// Middlewares
+
 app.use(
   cors({
     origin: [
       "http://localhost:3000",
-      "http://localhost:5173", // Vite default
-      "http://localhost:5174",
+      "http://localhost:5173", 
+      "http://localhost:5175",
       process.env.FRONTEND_URL || "",
     ].filter(Boolean),
     credentials: true,
