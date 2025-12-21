@@ -1,0 +1,31 @@
+import { Router } from "express";
+import {
+  createExpense,
+  getAllExpenses,
+  getExpenseById,
+  updateExpense,
+  deleteExpense,
+} from "../controllers/expense-controller";
+import { authenticate } from "../middlewares/authMiddleware";
+
+const router = Router();
+
+// All expense routes require authentication
+router.use(authenticate);
+
+// POST /api/expenses - Create new expense
+router.post("/", createExpense);
+
+// GET /api/expenses - Get all expenses (with optional filters)
+router.get("/", getAllExpenses);
+
+// GET /api/expenses/:id - Get expense by ID
+router.get("/:id", getExpenseById);
+
+// PUT /api/expenses/:id - Update expense
+router.put("/:id", updateExpense);
+
+// DELETE /api/expenses/:id - Delete expense
+router.delete("/:id", deleteExpense);
+
+export default router;

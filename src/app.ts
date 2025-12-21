@@ -2,6 +2,8 @@ import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import authRoutes from "./routes/authroutes";
+import expenseRoutes from "./routes/expenseRoutes";
+import categoryRoutes from "./routes/categoryRoutes";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -35,6 +37,8 @@ app.use((req, res, next) => {
 
 // Routes
 app.use("/api/auth", authRoutes);
+app.use("/api/expenses", expenseRoutes);
+app.use("/api/categories", categoryRoutes);
 
 // app.use("/api/auth", authRoutes);
 // app.use("/api/user", userRoutes);
