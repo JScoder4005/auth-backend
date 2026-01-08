@@ -4,6 +4,8 @@ import cookieParser from "cookie-parser";
 import authRoutes from "./routes/authroutes";
 import expenseRoutes from "./routes/expenseRoutes";
 import categoryRoutes from "./routes/categoryRoutes";
+import analyticsRoutes from "./routes/analyticsRoutes";
+import budgetRoutes from "./routes/budgetRoutes";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -39,6 +41,8 @@ app.use((req, res, next) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/expenses", expenseRoutes);
 app.use("/api/categories", categoryRoutes);
+app.use("/api/analytics", analyticsRoutes);
+app.use("/api/budgets", budgetRoutes);
 
 // app.use("/api/auth", authRoutes);
 // app.use("/api/user", userRoutes);
