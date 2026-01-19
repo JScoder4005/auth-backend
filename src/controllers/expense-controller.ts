@@ -203,3 +203,61 @@ export const deleteExpense = async (req: AuthRequest, res: Response) => {
     return res.status(500).json({ message: "Server error" });
   }
 };
+
+// EXPORT EXPENSES TO CSV
+export const exportExpensesToCSV = async (req: AuthRequest, res: Response) => {
+  const userId = req.userId!;
+  const { startDate, endDate, categoryId, type } = req.query;
+
+  try {
+    // Build query filters
+    const where: any = { userId };
+
+    if (startDate || endDate) {
+      where.date = {};
+      if (startDate) where.date.gte = new Date(startDate as string);
+      if (endDate) where.date.lte = new Date(endDate as string);
+    }
+
+    if (categoryId) {
+      where.categoryId = parseInt(categoryId as string);
+    }
+
+    if (type) {
+      where.type = type as string;
+    }
+
+    // Fetch expenses
+    const expenses = await prisma.expense.findMany({
+      where,
+      include: {
+        category: true,
+      },
+      orderBy: {
+        date: 'desc',
+      },
+    });
+
+    // Generate CSV
+    const csvHeaders = ['Date', 'Description', 'Category', 'Type', 'Amount'];
+    const csvRows = expenses.map((expense) => {
+      const date = new Date(expense.date).toLocaleDateString('en-IN');
+      const description = `"${expense.description.replace(/"/g, '""')}"`;
+      const category = expense.category.name;
+      const type = expense.type;
+      const amount = expense.amount.toFixed(2);
+      return [date, description, category, type, amount].join(',');
+    });
+
+    const csv = [csvHeaders.join(','), ...csvRows].join('\n');
+
+    // Set headers for download
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename=expenses.csv');
+    
+    return res.send(csv);
+  } catch (err) {
+    console.error('Export expenses error:', err);
+    return res.status(500).json({ message: 'Server error' });
+  }
+};

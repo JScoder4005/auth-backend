@@ -5,6 +5,7 @@ import {
   getExpenseById,
   updateExpense,
   deleteExpense,
+  exportExpensesToCSV,
 } from "../controllers/expense-controller";
 import { authenticate } from "../middlewares/authMiddleware";
 
@@ -18,6 +19,9 @@ router.post("/", createExpense);
 
 // GET /api/expenses - Get all expenses (with optional filters)
 router.get("/", getAllExpenses);
+
+// GET /api/expenses/export/csv - Export expenses to CSV
+router.get("/export/csv", exportExpensesToCSV);
 
 // GET /api/expenses/:id - Get expense by ID
 router.get("/:id", getExpenseById);
