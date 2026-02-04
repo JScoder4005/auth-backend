@@ -119,3 +119,22 @@ export const logout = async (req: Request, res: Response) => {
 
   return res.json({ message: "Logged out" });
 };
+
+// GET ALL USERS
+export const getAllUsers = async (req: Request, res: Response) => {
+  try {
+    const users = await prisma.user.findMany({
+      select: {
+        id: true,
+        email: true,
+        createdAt: true,
+        // Exclude password for security
+      },
+    });
+
+    return res.json({ users, count: users.length });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: "Server error" });
+  }
+};

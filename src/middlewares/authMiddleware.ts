@@ -11,7 +11,17 @@ export const authenticate = (
   next: NextFunction
 ) => {
   try {
-    const token = req.cookies.accessToken;
+    // Check for token in cookies first, then Authorization header
+    let token = req.cookies.accessToken;
+    
+    // If no cookie, check Authorization header (Bearer token)
+    if (!token) {
+      const authHeader = req.headers.authorization;
+      if (authHeader && authHeader.startsWith("Bearer ")) {
+        token = authHeader.substring(7); // Remove "Bearer " prefix
+      }
+    }
+    
     if (!token) return res.status(401).json({ message: "Not authenticated" });
 
     const payload: any = verifyAccessToken(token);

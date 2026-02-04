@@ -8,6 +8,7 @@ import {
   exportExpensesToCSV,
 } from "../controllers/expense-controller";
 import { authenticate } from "../middlewares/authMiddleware";
+import { validateExpense } from "../middlewares/validation";
 
 const router = Router();
 
@@ -15,7 +16,7 @@ const router = Router();
 router.use(authenticate);
 
 // POST /api/expenses - Create new expense
-router.post("/", createExpense);
+router.post("/", validateExpense, createExpense);
 
 // GET /api/expenses - Get all expenses (with optional filters)
 router.get("/", getAllExpenses);
