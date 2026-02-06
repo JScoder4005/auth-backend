@@ -1,7 +1,16 @@
 import jwt from "jsonwebtoken";
 
-const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET!;
-const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET!;
+// Validate environment variables
+if (!process.env.ACCESS_TOKEN_SECRET) {
+  throw new Error("ACCESS_TOKEN_SECRET is not defined in environment variables");
+}
+
+if (!process.env.REFRESH_TOKEN_SECRET) {
+  throw new Error("REFRESH_TOKEN_SECRET is not defined in environment variables");
+}
+
+const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET;
+const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET;
 
 export const createAccessToken = (userId: number) => {
   return jwt.sign({ userId }, ACCESS_TOKEN_SECRET, { expiresIn: "30m" });

@@ -13,6 +13,26 @@ export const register = async (req: Request, res: Response) => {
   console.log("Register request body:", req.body);
   const { email, password } = req.body;
 
+  // Input validation
+  if (!email || !password) {
+    return res.status(400).json({ message: "Email and password are required" });
+  }
+
+  if (typeof email !== 'string' || typeof password !== 'string') {
+    return res.status(400).json({ message: "Invalid input types" });
+  }
+
+  // Email format validation
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    return res.status(400).json({ message: "Invalid email format" });
+  }
+
+  // Password strength validation
+  if (password.length < 6) {
+    return res.status(400).json({ message: "Password must be at least 6 characters long" });
+  }
+
   try {
     const existingUser = await prisma.user.findUnique({ where: { email } });
     if (existingUser)
@@ -38,6 +58,15 @@ export const register = async (req: Request, res: Response) => {
 export const login = async (req: Request, res: Response) => {
   const { email, password } = req.body;
 
+  // Input validation
+  if (!email || !password) {
+    return res.status(400).json({ message: "Email and password are required" });
+  }
+
+  if (typeof email !== 'string' || typeof password !== 'string') {
+    return res.status(400).json({ message: "Invalid input types" });
+  }
+
   try {
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user) return res.status(400).json({ message: "Invalid credentials" });
@@ -57,13 +86,17 @@ export const login = async (req: Request, res: Response) => {
       },
     });
 
-    // Set cookies
+    // Set cookies with secure settings
     res.cookie("accessToken", accessToken, {
-      httpOnly: false,
+      httpOnly: true, // Prevent XSS attacks
+      secure: process.env.NODE_ENV === 'production', // HTTPS only in production
+      sameSite: 'strict', // CSRF protection
       maxAge: 30 * 60 * 1000,
     });
     res.cookie("refreshToken", refreshToken, {
-      httpOnly: false,
+      httpOnly: true, // Prevent XSS attacks
+      secure: process.env.NODE_ENV === 'production', // HTTPS only in production
+      sameSite: 'strict', // CSRF protection
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
@@ -97,7 +130,9 @@ export const refreshToken = async (req: Request, res: Response) => {
     const accessToken = createAccessToken(payload.userId);
 
     res.cookie("accessToken", accessToken, {
-      httpOnly: false,
+      httpOnly: true, // Prevent XSS attacks
+      secure: process.env.NODE_ENV === 'production', // HTTPS only in production
+      sameSite: 'strict', // CSRF protection
       maxAge: 30 * 60 * 1000,
     });
     return res.json({ accessToken });
