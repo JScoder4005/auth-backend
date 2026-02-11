@@ -173,3 +173,48 @@ export const getAllUsers = async (req: Request, res: Response) => {
     return res.status(500).json({ message: "Server error" });
   }
 };
+
+// GET USER PROFILE
+export const getUserProfile = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).userId;
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        email: true,
+        createdAt: true,
+      },
+    });
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Get user statistics
+    const expenseCount = await prisma.expense.count({
+      where: { userId },
+    });
+
+    const categoryCount = await prisma.category.count({
+      where: { userId },
+    });
+
+    const budgetCount = await prisma.budget.count({
+      where: { userId },
+    });
+
+    return res.json({
+      user,
+      stats: {
+        expenses: expenseCount,
+        categories: categoryCount,
+        budgets: budgetCount,
+      },
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: "Server error" });
+  }
+};

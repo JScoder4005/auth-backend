@@ -7,6 +7,7 @@ import categoryRoutes from "./routes/categoryRoutes";
 import analyticsRoutes from "./routes/analyticsRoutes";
 import budgetRoutes from "./routes/budgetRoutes";
 import healthRoutes from "./routes/healthRoutes";
+import { requestLogger } from "./middlewares/logger";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -30,13 +31,8 @@ app.use(
 app.use(express.json());
 app.use(cookieParser());
 
-// Logger middleware - logs all incoming requests
-app.use((req, res, next) => {
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
-  console.log("Headers:", req.headers);
-  console.log("Body:", req.body);
-  next();
-});
+// Request logging middleware
+app.use(requestLogger);
 
 // Routes
 app.use("/api/health", healthRoutes);

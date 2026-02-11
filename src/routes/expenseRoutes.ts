@@ -9,11 +9,13 @@ import {
 } from "../controllers/expense-controller";
 import { authenticate } from "../middlewares/authMiddleware";
 import { validateExpense } from "../middlewares/validation";
+import { expenseLimiter } from "../middlewares/rateLimiter";
 
 const router = Router();
 
-// All expense routes require authentication
+// All expense routes require authentication and rate limiting
 router.use(authenticate);
+router.use(expenseLimiter);
 
 // POST /api/expenses - Create new expense
 router.post("/", validateExpense, createExpense);
