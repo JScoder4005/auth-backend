@@ -8,6 +8,7 @@ import analyticsRoutes from "./routes/analyticsRoutes";
 import budgetRoutes from "./routes/budgetRoutes";
 import healthRoutes from "./routes/healthRoutes";
 import { requestLogger } from "./middlewares/logger";
+import { errorHandler } from "./utils/errorHandler";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -41,5 +42,8 @@ app.use("/api/expenses", expenseRoutes);
 app.use("/api/categories", categoryRoutes);
 app.use("/api/analytics", analyticsRoutes);
 app.use("/api/budgets", budgetRoutes);
+
+// Error handler - MUST be last middleware
+app.use(errorHandler);
 
 export default app;
