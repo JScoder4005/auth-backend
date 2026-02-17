@@ -49,12 +49,17 @@ This project includes comprehensive CI/CD pipelines using both **GitHub Actions*
 
 ### Required Secrets
 
+> [!IMPORTANT]
+> **Security Notice:** All credential examples below are PLACEHOLDERS ONLY. Never commit real passwords or secrets to your repository. Always use GitHub Secrets or environment variables for actual credentials.
+
 Add these to GitHub repository settings (`Settings` > `Secrets and variables` > `Actions`):
 
 ```
-DOCKER_USERNAME=your-docker-username
-DOCKER_PASSWORD=your-docker-password
+DOCKER_USERNAME=<your-actual-docker-username>
+DOCKER_PASSWORD=<your-actual-docker-token>
 ```
+
+**Note:** These are stored securely in GitHub and never exposed in logs or code.
 
 ### Usage
 
@@ -96,19 +101,22 @@ DOCKER_PASSWORD=your-docker-password
 
 Configure in Jenkins (`Manage Jenkins` > `Credentials`):
 
+> [!CAUTION]
+> **Never commit real credentials!** The examples below use placeholder syntax. Replace with your actual credentials only in Jenkins UI.
+
 **Docker Hub:**
 ```
 ID: docker-hub-credentials
 Type: Username with password
-Username: your-docker-username
-Password: your-docker-password
+Username: <your-docker-hub-username>
+Password: <your-docker-hub-access-token>
 ```
 
 **Database URL:**
 ```
 ID: database-url
 Type: Secret text
-Secret: postgresql://user:pass@host:5432/db
+Secret: postgresql://<username>:<password>@<host>:<port>/<database>
 ```
 
 ### Jenkins Setup
