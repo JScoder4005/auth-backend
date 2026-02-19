@@ -39,6 +39,29 @@ export const categorySelectFields = {
 };
 
 /**
+ * Select fields for budget queries
+ */
+export const budgetSelectFields = {
+  id: true,
+  name: true,
+  amount: true,
+  period: true,
+  categoryId: true,
+  userId: true,
+  createdAt: true,
+  updatedAt: true,
+  category: {
+    select: {
+      id: true,
+      name: true,
+      color: true,
+      icon: true,
+      type: true,
+    },
+  },
+};
+
+/**
  * Select fields for user queries (excluding sensitive data)
  */
 export const userSelectFields = {
@@ -46,6 +69,7 @@ export const userSelectFields = {
   email: true,
   createdAt: true,
 };
+
 
 /**
  * Build date range filter
