@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+import { Response } from "express";
 import { prisma } from "../config/prisma";
 import bcrypt from "bcryptjs";
 import {
@@ -6,144 +6,84 @@ import {
   createRefreshToken,
   verifyRefreshToken,
 } from "../utils/jwt";
+import { AuthRequest } from "../middlewares/authMiddleware";
+import { asyncHandler, AppError } from "../utils/errorHandler";
+
+const ACCESS_COOKIE_OPTIONS = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: "strict" as const,
+  maxAge: 30 * 60 * 1000,
+};
+
+const REFRESH_COOKIE_OPTIONS = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: "strict" as const,
+  maxAge: 7 * 24 * 60 * 60 * 1000,
+};
 
 // REGISTER
-export const register = async (req: Request, res: Response) => {
-  console.log("Register endpoint hit");
-  console.log("Register request body:", req.body);
+export const register = asyncHandler(async (req: AuthRequest, res: Response) => {
   const { email, password } = req.body;
 
-  // Input validation
-  if (!email || !password) {
-    return res.status(400).json({ message: "Email and password are required" });
+  const existingUser = await prisma.user.findUnique({ where: { email } });
+  if (existingUser) {
+    throw new AppError("User already exists", 400);
   }
 
-  if (typeof email !== 'string' || typeof password !== 'string') {
-    return res.status(400).json({ message: "Invalid input types" });
-  }
+  const hashedPassword = await bcrypt.hash(password, 10);
+  const user = await prisma.user.create({
+    data: { email, password: hashedPassword },
+  });
 
-  // Email format validation
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(email)) {
-    return res.status(400).json({ message: "Invalid email format" });
-  }
-
-  // Password strength validation
-  if (password.length < 6) {
-    return res.status(400).json({ message: "Password must be at least 6 characters long" });
-  }
-
-  try {
-    const existingUser = await prisma.user.findUnique({ where: { email } });
-    if (existingUser)
-      return res.status(400).json({ message: "User already exists" });
-     
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    const user = await prisma.user.create({
-      data: {
-        email,
-        password: hashedPassword,
-      },
-    });
-    console.log("userReq", user);
-    return res.status(201).json({ message: "User created", userId: user.id });
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ message: "Server error" });
-  }
-};
+  return res.status(201).json({ message: "User created", userId: user.id });
+});
 
 // LOGIN
-export const login = async (req: Request, res: Response) => {
+export const login = asyncHandler(async (req: AuthRequest, res: Response) => {
   const { email, password } = req.body;
 
-  // Input validation
-  if (!email || !password) {
-    return res.status(400).json({ message: "Email and password are required" });
-  }
+  const user = await prisma.user.findUnique({ where: { email } });
+  if (!user) throw new AppError("Invalid credentials", 400);
 
-  if (typeof email !== 'string' || typeof password !== 'string') {
-    return res.status(400).json({ message: "Invalid input types" });
-  }
+  const isValid = await bcrypt.compare(password, user.password);
+  if (!isValid) throw new AppError("Invalid credentials", 400);
 
-  try {
-    const user = await prisma.user.findUnique({ where: { email } });
-    if (!user) return res.status(400).json({ message: "Invalid credentials" });
+  const accessToken = createAccessToken(user.id);
+  const refreshToken = createRefreshToken(user.id);
 
-    const isValid = await bcrypt.compare(password, user.password);
-    if (!isValid)
-      return res.status(400).json({ message: "Invalid credentials" });
+  await prisma.refreshToken.create({
+    data: { token: refreshToken, userId: user.id },
+  });
 
-    const accessToken = createAccessToken(user.id);
-    const refreshToken = createRefreshToken(user.id);
+  res.cookie("accessToken", accessToken, ACCESS_COOKIE_OPTIONS);
+  res.cookie("refreshToken", refreshToken, REFRESH_COOKIE_OPTIONS);
 
-    // Save refresh token in DB
-    await prisma.refreshToken.create({
-      data: {
-        token: refreshToken,
-        userId: user.id,
-      },
-    });
-
-    // Set cookies with secure settings
-    res.cookie("accessToken", accessToken, {
-      httpOnly: true, // Prevent XSS attacks
-      secure: process.env.NODE_ENV === 'production', // HTTPS only in production
-      sameSite: 'strict', // CSRF protection
-      maxAge: 30 * 60 * 1000,
-    });
-    res.cookie("refreshToken", refreshToken, {
-      httpOnly: true, // Prevent XSS attacks
-      secure: process.env.NODE_ENV === 'production', // HTTPS only in production
-      sameSite: 'strict', // CSRF protection
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
-
-    return res.json({
-      message: "Logged in",
-      user: {
-        id: user.id,
-        email: user.email,
-      }
-    });
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ message: "Server error" });
-  }
-};
+  return res.json({
+    message: "Logged in",
+    user: { id: user.id, email: user.email },
+  });
+});
 
 // REFRESH TOKEN
-export const refreshToken = async (req: Request, res: Response) => {
+export const refreshToken = asyncHandler(async (req: AuthRequest, res: Response) => {
   const token = req.cookies.refreshToken;
-  if (!token) return res.status(401).json({ message: "No token" });
+  if (!token) throw new AppError("No token", 401);
 
-  try {
-    const payload: any = verifyRefreshToken(token);
+  const payload: any = verifyRefreshToken(token);
 
-    // Check token exists in DB
-    const tokenInDb = await prisma.refreshToken.findUnique({
-      where: { token },
-    });
-    if (!tokenInDb) return res.status(401).json({ message: "Invalid token" });
+  const tokenInDb = await prisma.refreshToken.findUnique({ where: { token } });
+  if (!tokenInDb) throw new AppError("Invalid token", 401);
 
-    const accessToken = createAccessToken(payload.userId);
+  const accessToken = createAccessToken(payload.userId);
+  res.cookie("accessToken", accessToken, ACCESS_COOKIE_OPTIONS);
 
-    res.cookie("accessToken", accessToken, {
-      httpOnly: true, // Prevent XSS attacks
-      secure: process.env.NODE_ENV === 'production', // HTTPS only in production
-      sameSite: 'strict', // CSRF protection
-      maxAge: 30 * 60 * 1000,
-    });
-    return res.json({ accessToken });
-  } catch (err) {
-    console.error(err);
-    return res.status(401).json({ message: "Invalid token" });
-  }
-};
+  return res.json({ accessToken });
+});
 
 // LOGOUT
-export const logout = async (req: Request, res: Response) => {
+export const logout = asyncHandler(async (req: AuthRequest, res: Response) => {
   const token = req.cookies.refreshToken;
   if (token) {
     await prisma.refreshToken.deleteMany({ where: { token } });
@@ -153,68 +93,37 @@ export const logout = async (req: Request, res: Response) => {
   res.clearCookie("refreshToken");
 
   return res.json({ message: "Logged out" });
-};
+});
 
 // GET ALL USERS
-export const getAllUsers = async (req: Request, res: Response) => {
-  try {
-    const users = await prisma.user.findMany({
-      select: {
-        id: true,
-        email: true,
-        createdAt: true,
-        // Exclude password for security
-      },
-    });
+export const getAllUsers = asyncHandler(async (_req: AuthRequest, res: Response) => {
+  const users = await prisma.user.findMany({
+    select: { id: true, email: true, createdAt: true },
+  });
 
-    return res.json({ users, count: users.length });
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ message: "Server error" });
-  }
-};
+  return res.json({ users, count: users.length });
+});
 
 // GET USER PROFILE
-export const getUserProfile = async (req: Request, res: Response) => {
-  try {
-    const userId = (req as any).userId;
+export const getUserProfile = asyncHandler(async (req: AuthRequest, res: Response) => {
+  const userId = req.userId!;
 
-    const user = await prisma.user.findUnique({
+  const [user, expenseCount, categoryCount, budgetCount] = await Promise.all([
+    prisma.user.findUnique({
       where: { id: userId },
-      select: {
-        id: true,
-        email: true,
-        createdAt: true,
-      },
-    });
+      select: { id: true, email: true, createdAt: true },
+    }),
+    prisma.expense.count({ where: { userId } }),
+    prisma.category.count({ where: { userId } }),
+    prisma.budget.count({ where: { userId } }),
+  ]);
 
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-
-    // Get user statistics
-    const expenseCount = await prisma.expense.count({
-      where: { userId },
-    });
-
-    const categoryCount = await prisma.category.count({
-      where: { userId },
-    });
-
-    const budgetCount = await prisma.budget.count({
-      where: { userId },
-    });
-
-    return res.json({
-      user,
-      stats: {
-        expenses: expenseCount,
-        categories: categoryCount,
-        budgets: budgetCount,
-      },
-    });
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ message: "Server error" });
+  if (!user) {
+    throw new AppError("User not found", 404);
   }
-};
+
+  return res.json({
+    user,
+    stats: { expenses: expenseCount, categories: categoryCount, budgets: budgetCount },
+  });
+});
