@@ -51,6 +51,8 @@ jobs:
         run: pnpm run lint || echo "No lint script found"
 
       - name: Generate Prisma Client
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/expense_tracker_test
         run: pnpm exec prisma generate
 
       - name: Run database migrations
