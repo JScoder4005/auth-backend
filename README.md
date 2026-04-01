@@ -1,46 +1,26 @@
-# Expense Tracker Backend API 💰
+# Expense Tracker Backend API
 
-A robust RESTful API built with **Node.js**, **Express**, **TypeScript**, and **PostgreSQL** for managing personal expenses, budgets, and financial analytics.
+A RESTful API built with **Node.js**, **Express 5**, **TypeScript**, and **PostgreSQL** for managing personal expenses, budgets, and financial analytics.
 
-## 🚀 Features
+## Features
 
-- **Authentication & Authorization**
-  - JWT-based authentication with access and refresh tokens
-  - Secure password hashing with bcrypt
-  - Cookie-based and Bearer token support
-  
-- **Expense Management**
-  - Create, read, update, and delete expenses
-  - Filter expenses by category, date range
-  - Export expenses to CSV
-  
-- **Category Management**
-  - Custom expense categories
-  - Category-based filtering and analytics
-  
-- **Budget Tracking**
-  - Set and monitor budgets
-  - Budget alerts and notifications
-  
-- **Analytics**
-  - Expense trends and insights
-  - Category-wise spending analysis
-  
-- **Input Validation**
-  - Request validation middleware
-  - Detailed error messages
-  
-- **Health Monitoring**
-  - API health check endpoints
-  - Database connection monitoring
+- **Authentication** — JWT access + refresh tokens, bcrypt password hashing, cookie-based and Bearer token support
+- **Expense Management** — Full CRUD, filter by category/date/type, CSV export
+- **Category Management** — Custom income/expense categories
+- **Budget Tracking** — Period-based budgets (daily/weekly/monthly/yearly) with real-time progress
+- **Analytics** — Dashboard summary, category breakdown, monthly trends, top categories
+- **Rate Limiting** — Per-IP limits on auth and expense endpoints
+- **Input Validation** — Request validation middleware with descriptive errors
+- **Error Handling** — Centralized `asyncHandler` + `AppError` pattern, Prisma error mapping
+- **Health Monitoring** — Health check and ping endpoints
 
-## 📋 Prerequisites
+## Prerequisites
 
-- **Node.js** (v16 or higher)
-- **PostgreSQL** (v12 or higher)
-- **npm** or **yarn**
+- **Node.js** v18+
+- **PostgreSQL** v12+
+- **pnpm** (v10+)
 
-## 🛠️ Installation
+## Installation
 
 1. **Clone the repository**
    ```bash
@@ -50,17 +30,18 @@ A robust RESTful API built with **Node.js**, **Express**, **TypeScript**, and **
 
 2. **Install dependencies**
    ```bash
-   npm install
+   pnpm install
    ```
 
 3. **Set up environment variables**
-   
+
    Create a `.env` file in the root directory:
    ```env
-   DATABASE_URL="postgresql://user:password@localhost:5432/authdb"
-   JWT_ACCESS_SECRET=your_access_token_secret
-   JWT_REFRESH_SECRET=your_refresh_token_secret
-   PORT=3000
+   DATABASE_URL="postgresql://user:password@localhost:5432/expensedb"
+   ACCESS_TOKEN_SECRET=your_access_token_secret
+   REFRESH_TOKEN_SECRET=your_refresh_token_secret
+   PORT=3001
+   NODE_ENV=development
    FRONTEND_URL=http://localhost:5173
    ```
 
@@ -74,183 +55,165 @@ A robust RESTful API built with **Node.js**, **Express**, **TypeScript**, and **
    npx prisma generate
    ```
 
-## 🏃 Running the Application
+## Running the Application
 
 ### Development Mode
 ```bash
-npm run dev
+pnpm dev
 ```
 
-### Production Mode
-```bash
-npm run build
-npm start
-```
+The server starts on `http://localhost:3001` by default.
 
-The server will start on `http://localhost:3000`
+## API Reference
 
-## 📚 API Documentation
-
-See [API_DOCUMENTATION.md](./API_DOCUMENTATION.md) for complete API reference.
+See [API_DOCUMENTATION.md](./API_DOCUMENTATION.md) for the full API reference.
 
 ### Base URL
 ```
-http://localhost:3000/api
+http://localhost:3001/api
 ```
 
-### Quick Reference
+### Health & Status
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| GET | `/api/health/health` | Full health check with DB status | No |
+| GET | `/api/health/ping` | Simple liveness ping | No |
 
-#### Health & Status
-- `GET /api/health/health` - Health check
-- `GET /api/health/ping` - Simple ping
+### Authentication
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| POST | `/api/auth/register` | Register a new user | No |
+| POST | `/api/auth/login` | Login and receive tokens | No |
+| POST | `/api/auth/refresh-token` | Rotate access token using refresh token | No |
+| POST | `/api/auth/logout` | Logout and invalidate refresh token | No |
+| GET | `/api/auth/me` | Get current user profile + stats | Yes |
+| GET | `/api/auth/users` | List all users | Yes |
 
-#### Authentication
-- `POST /api/auth/register` - Register new user
-- `POST /api/auth/login` - Login user
-- `POST /api/auth/refresh-token` - Refresh access token
-- `POST /api/auth/logout` - Logout user
-- `GET /api/auth/users` - Get all users (auth required)
+### Expenses
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| POST | `/api/expenses` | Create an expense | Yes |
+| GET | `/api/expenses` | List expenses (filterable) | Yes |
+| GET | `/api/expenses/:id` | Get expense by ID | Yes |
+| PUT | `/api/expenses/:id` | Update an expense | Yes |
+| DELETE | `/api/expenses/:id` | Delete an expense | Yes |
+| GET | `/api/expenses/export/csv` | Export expenses as CSV | Yes |
 
-#### Expenses
-- `POST /api/expenses` - Create expense
-- `GET /api/expenses` - Get all expenses
-- `GET /api/expenses/:id` - Get expense by ID
-- `PUT /api/expenses/:id` - Update expense
-- `DELETE /api/expenses/:id` - Delete expense
-- `GET /api/expenses/export/csv` - Export to CSV
+**Query filters for `GET /api/expenses`:** `startDate`, `endDate`, `categoryId`, `type`
 
-#### Categories
-- `POST /api/categories` - Create category
-- `GET /api/categories` - Get all categories
-- `PUT /api/categories/:id` - Update category
-- `DELETE /api/categories/:id` - Delete category
+### Categories
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| POST | `/api/categories` | Create a category | Yes |
+| GET | `/api/categories` | List categories (filterable by `type`) | Yes |
+| DELETE | `/api/categories/:id` | Delete a category (blocked if expenses exist) | Yes |
 
-#### Analytics
-- `GET /api/analytics/summary` - Get expense summary
-- `GET /api/analytics/trends` - Get spending trends
+### Budgets
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| POST | `/api/budgets` | Create a budget | Yes |
+| GET | `/api/budgets` | List all budgets | Yes |
+| GET | `/api/budgets/:id` | Get budget by ID | Yes |
+| GET | `/api/budgets/:id/progress` | Get spending progress for a budget | Yes |
+| PUT | `/api/budgets/:id` | Update a budget | Yes |
+| DELETE | `/api/budgets/:id` | Delete a budget | Yes |
 
-#### Budgets
-- `POST /api/budgets` - Create budget
-- `GET /api/budgets` - Get all budgets
-- `PUT /api/budgets/:id` - Update budget
-- `DELETE /api/budgets/:id` - Delete budget
+### Analytics
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| GET | `/api/analytics/summary` | Dashboard summary with totals and category breakdown | Yes |
+| GET | `/api/analytics/category-breakdown` | Per-category spending (for pie charts) | Yes |
+| GET | `/api/analytics/monthly-trends` | Monthly income/expense trends | Yes |
+| GET | `/api/analytics/top-categories` | Top spending categories | Yes |
 
-## 🧪 Testing with Postman
+**Query params for `/summary` and `/category-breakdown`:** `startDate`, `endDate`, `type`
+**Query params for `/monthly-trends`:** `months` (default: `6`)
+**Query params for `/top-categories`:** `limit` (default: `5`), `type` (default: `expense`)
 
-1. Import the API collection (if available)
-2. Set up environment variables:
-   - `base_url`: `http://localhost:3000/api`
-3. Start with authentication:
-   - Register a user
-   - Login to get tokens
-   - Use tokens for protected endpoints
+## Authentication
 
-## 🔒 Authentication
+Two methods are supported:
 
-This API supports two authentication methods:
+**Cookie-based (default after login)**
+Tokens are set automatically in `httpOnly` cookies.
 
-### 1. Cookie-based (Recommended)
-Tokens are automatically set in cookies after login.
-
-### 2. Bearer Token
-Include in the Authorization header:
+**Bearer Token**
 ```
-Authorization: Bearer <your_access_token>
-```
-
-## 🗄️ Database Schema
-
-The application uses Prisma ORM with PostgreSQL. Main models:
-
-- **User** - User accounts
-- **Expense** - Expense records
-- **Category** - Expense categories
-- **Budget** - Budget tracking
-- **RefreshToken** - Token management
-
-### View Schema
-```bash
-npx prisma studio
+Authorization: Bearer <access_token>
 ```
 
-## 📁 Project Structure
+Access tokens expire in **30 minutes**. Use `POST /api/auth/refresh-token` to get a new one using the refresh token cookie (valid for 7 days).
+
+## Project Structure
 
 ```
 src/
-├── config/          # Configuration files (Prisma, etc.)
-├── controllers/     # Route controllers
-├── middlewares/     # Custom middleware (auth, validation)
-├── routes/          # API routes
-├── utils/           # Utility functions (JWT, helpers)
-├── app.ts           # Express app setup
-└── server.ts        # Server entry point
+├── config/
+│   └── prisma.ts          # Prisma client singleton
+├── controllers/
+│   ├── auth-controller.ts
+│   ├── expense-controller.ts
+│   ├── category-controller.ts
+│   ├── budget-controller.ts
+│   ├── analytics-controller.ts
+│   └── health-controller.ts
+├── middlewares/
+│   ├── authMiddleware.ts  # JWT authentication
+│   ├── validation.ts      # Request validation
+│   ├── rateLimiter.ts     # In-memory rate limiting
+│   └── logger.ts          # Request/response logger
+├── routes/
+│   ├── authroutes.ts
+│   ├── expenseRoutes.ts
+│   ├── categoryRoutes.ts
+│   ├── budgetRoutes.ts
+│   ├── analyticsRoutes.ts
+│   └── healthRoutes.ts
+├── utils/
+│   ├── jwt.ts             # Token creation and verification
+│   ├── errorHandler.ts    # asyncHandler, AppError, error middleware
+│   ├── queryHelpers.ts    # Prisma select fields, date filters, pagination
+│   └── responseHelpers.ts # Typed response helpers
+├── app.ts                 # Express app setup (middleware + routes)
+└── index.ts               # Server entry point
 ```
 
-## 🛡️ Security Features
+## Database Schema
 
-- Password hashing with bcrypt
-- JWT token authentication
-- HTTP-only cookies (configurable)
-- CORS protection
-- Input validation
-- SQL injection prevention (Prisma ORM)
+Managed with **Prisma ORM**. Main models:
 
-## 🚦 Error Handling
+- **User** — user accounts
+- **RefreshToken** — issued refresh tokens (one-to-many with User)
+- **Expense** — expense/income records
+- **Category** — user-defined categories (income or expense)
+- **Budget** — period-based budget limits, optionally scoped to a category
 
-The API returns consistent error responses:
-
-```json
-{
-  "message": "Error description",
-  "errors": {
-    "field": "Specific error message"
-  }
-}
-```
-
-## 📊 Monitoring
-
-### Health Check
 ```bash
-curl http://localhost:3000/api/health/health
+npx prisma studio    # Open visual DB browser
 ```
 
-Response:
+## Error Responses
+
+All errors follow this shape:
+
 ```json
 {
-  "status": "healthy",
-  "timestamp": "2026-02-04T18:30:00.000Z",
-  "services": {
-    "api": "operational",
-    "database": "operational"
-  },
-  "uptime": 12345.67
+  "message": "Human-readable description",
+  "errors": { "field": "Specific issue" }
 }
 ```
 
-## 🤝 Contributing
+In `development`, a `stack` field is included on 500 errors.
 
-1. Fork the repository
-2. Create a feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a Pull Request
+## Security
 
-## 📝 License
+- Passwords hashed with bcrypt (cost factor 10)
+- `httpOnly`, `sameSite: strict` cookies
+- `secure` cookie flag enabled in production
+- CORS restricted to configured origins
+- Rate limiting on auth (5 req / 15 min) and expense (30 req / 1 min) endpoints
+- SQL injection prevention via Prisma parameterized queries
 
-This project is licensed under the MIT License.
+## License
 
-## 👤 Author
-
-Uday
-
-## 🙏 Acknowledgments
-
-- Express.js
-- Prisma ORM
-- PostgreSQL
-- TypeScript
-
----
-
-**Made with ❤️ for efficient expense tracking**
+MIT
